@@ -1,0 +1,32 @@
+@base=http://localhost:3000
+@token=replace-after-session-init
+POST {{base}}/session/init
+###
+GET {{base}}/session/me
+Authorization: Bearer {{token}}
+###
+POST {{base}}/rumor
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{"text":"The library is open late today.","category":"academic"}
+###
+GET {{base}}/rumors?sort=credibility&limit=10
+###
+GET {{base}}/trending?limit=10
+###
+GET {{base}}/rumor/00000000-0000-0000-0000-000000000000/credibility
+###
+POST {{base}}/rumor/00000000-0000-0000-0000-000000000000/upvote
+Authorization: Bearer {{token}}
+###
+POST {{base}}/rumor/00000000-0000-0000-0000-000000000000/flag
+Authorization: Bearer {{token}}
+###
+PATCH {{base}}/rumor/00000000-0000-0000-0000-000000000000/debunk
+x-admin-api-key: replace
+###
+POST {{base}}/session/recover
+Content-Type: application/json
+
+{"recoveryCode":"replace-after-session-init"}

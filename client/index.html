@@ -1,0 +1,12 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>Campus Rumor Mill Live</title><style>body{font:16px system-ui;max-width:900px;margin:2rem auto;padding:0 1rem}li{margin:.5rem 0}.score{color:#176b35}</style></head>
+<body><h1>Campus Rumor Mill</h1><p id="status">Connecting...</p><h2>Trending</h2><ol id="trending"></ol><h2>Live feed</h2><ul id="feed"></ul>
+<script>
+const protocol = location.protocol === 'https:' ? 'wss' : 'ws';
+const socket = new WebSocket(`${protocol}://${location.host}/rumors/live`);
+const feed = document.querySelector('#feed'), trending = document.querySelector('#trending');
+socket.onopen = () => { document.querySelector('#status').textContent = 'Connected'; socket.send(JSON.stringify({subscribe:'hostel'})); };
+socket.onclose = () => document.querySelector('#status').textContent = 'Disconnected';
+socket.onmessage = ({data}) => { const message = JSON.parse(data); if (message.event === 'trending:update') { trending.innerHTML = message.data.items.map(r => `<li>${escapeHtml(r.text)} <span class="score">${Number(r.credibility).toFixed(1)}</span></li>`).join(''); } else { const li = document.createElement('li'); li.textContent = `${message.event}: ${message.data.text || message.data.id || ''}`; feed.prepend(li); } };
+function escapeHtml(value){const div=document.createElement('div');div.textContent=value;return div.innerHTML;}
+</script></body></html>
