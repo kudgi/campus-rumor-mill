@@ -46,7 +46,7 @@ export function calculateCredibility(
   );
 }
 const columns =
-  'r.id,r.session_id,r.text,r.category,r.status,r.base_score,r.upvote_count,r.flag_count,r.created_at,r.last_boost_at';
+  'id,session_id,text,category,status,base_score,upvote_count,flag_count,created_at,last_boost_at';
 export const enrich = (row: RumorRow): RumorRow & { credibility: number } => {
   return { ...row, credibility: calculateCredibility(row) };
 };
@@ -90,17 +90,17 @@ router.get(
     const filters: string[] = [];
     if (q.category) {
       values.push(q.category);
-      filters.push(`r.category=$${values.length}`);
+      filters.push(`category=$${values.length}`);
     }
     if (q.status) {
       values.push(q.status);
-      filters.push(`r.status=$${values.length}`);
+      filters.push(`status=$${values.length}`);
     }
     values.push(q.limit, (q.page - 1) * q.limit);
     const order =
-      q.sort === 'credibility' ? 'r.upvote_count DESC, r.created_at DESC' : 'r.created_at DESC';
+      q.sort === 'credibility' ? 'upvote_count DESC, created_at DESC' : 'created_at DESC';
     const result = await query(
-      `SELECT ${columns} FROM rumors r ${filters.length ? `WHERE ${filters.join(' AND ')}` : ''} ORDER BY ${order} LIMIT $${values.length - 1} OFFSET $${values.length}`,
+      `SELECT ${columns} FROM rumors ${filters.length ? `WHERE ${filters.join(' AND ')}` : ''} ORDER BY ${order} LIMIT $${values.length - 1} OFFSET $${values.length}`,
       values,
     );
     res.json({ items: (result.rows as RumorRow[]).map(enrich), page: q.page, limit: q.limit });
@@ -111,7 +111,7 @@ router.get(
   validate(z.object({ category: z.enum(categories) }), 'params'),
   asyncRoute(async (req, res) => {
     const result = await query(
-      `SELECT ${columns} FROM rumors r WHERE category=$1 ORDER BY created_at DESC LIMIT 50`,
+      `SELECT ${columns} FROM rumors WHERE category=$1 ORDER BY created_at DESC LIMIT 50`,
       [String(req.params.category)],
     );
     res.json({ items: (result.rows as RumorRow[]).map(enrich) });
@@ -121,7 +121,7 @@ router.get(
   '/:id',
   validate(idSchema, 'params'),
   asyncRoute(async (req, res) => {
-    const result = await query(`SELECT ${columns} FROM rumors r WHERE id=$1`, [
+    const result = await query(`SELECT ${columns} FROM rumors WHERE id=$1`, [
       String(req.params.id),
     ]);
     if (!result.rowCount) throw new AppError(404, 'NOT_FOUND', 'Rumor not found');

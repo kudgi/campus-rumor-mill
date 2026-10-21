@@ -18,6 +18,7 @@ describeDatabase('database-backed API behavior', () => {
       .post('/rumor')
       .set('Authorization', `Bearer ${owner}`)
       .send({ text: 'A test rumor', category: 'hostel' });
+    expect(created.status).toBe(201);
     rumorId = created.body.id;
   });
   afterAll(async () => {
@@ -69,10 +70,14 @@ describeDatabase('database-backed API behavior', () => {
 
   it('auto-debunks at the configured flag threshold', async () => {
     const flaggers = await Promise.all(
-      Array.from({ length: 5 }, () =>
+      Array.from({ length: 5 }, (_, index) =>
         request(app)
           .post('/session/init')
-          .then((response) => response.body.token),
+          .set('User-Agent', `flagger-${index}`)
+          .then((response) => {
+            expect(response.status).toBe(201);
+            return response.body.token;
+          }),
       ),
     );
     for (const token of flaggers)
