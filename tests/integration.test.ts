@@ -18,6 +18,8 @@ describeDatabase('database-backed API behavior', () => {
       .post('/rumor')
       .set('Authorization', `Bearer ${owner}`)
       .send({ text: 'A test rumor', category: 'hostel' });
+    expect(created.status).toBe(201);
+    expect(created.body.id).toEqual(expect.any(String));
     rumorId = created.body.id;
   });
   afterAll(async () => {
