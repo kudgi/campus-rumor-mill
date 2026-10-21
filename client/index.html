@@ -6,6 +6,7 @@ const protocol = location.protocol === 'https:' ? 'wss' : 'ws';
 const socket = new WebSocket(`${protocol}://${location.host}/rumors/live`);
 const feed = document.querySelector('#feed'), trending = document.querySelector('#trending');
 socket.onopen = () => { document.querySelector('#status').textContent = 'Connected'; socket.send(JSON.stringify({subscribe:'hostel'})); };
+socket.onerror = () => document.querySelector('#status').textContent = 'Connection error';
 socket.onclose = () => document.querySelector('#status').textContent = 'Disconnected';
 socket.onmessage = ({data}) => { const message = JSON.parse(data); if (message.event === 'trending:update') { trending.innerHTML = message.data.items.map(r => `<li>${escapeHtml(r.text)} <span class="score">${Number(r.credibility).toFixed(1)}</span></li>`).join(''); } else { const li = document.createElement('li'); li.textContent = `${message.event}: ${message.data.text || message.data.id || ''}`; feed.prepend(li); } };
 function escapeHtml(value){const div=document.createElement('div');div.textContent=value;return div.innerHTML;}

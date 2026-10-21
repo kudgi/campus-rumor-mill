@@ -17,7 +17,7 @@ export function broadcast(event: string, data: unknown, category?: string) {
 }
 export function attachWebSocket(server: HttpServer) {
   const wss = new WebSocketServer({ server, path: '/rumors/live' });
-  wss.on('connection', (socket) => {
+  wss.on('connection', async (socket) => {
     const client: Client = { socket, isAlive: true };
     clients.add(client);
     socket.on('pong', () => {
@@ -32,7 +32,7 @@ export function attachWebSocket(server: HttpServer) {
       }
     });
     socket.on('close', () => clients.delete(client));
-    socket.send(JSON.stringify({ event: 'trending:update', data: { items: [] } }));
+    socket.send(JSON.stringify({ event: 'trending:update', data: { items: await getTrending() } }));
   });
   const heartbeat = setInterval(() => {
     for (const client of clients) {
