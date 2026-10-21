@@ -58,7 +58,7 @@ export function attachWebSocket(server: HttpServer) {
             id: rumor.id,
             credibility: (
               await query(
-                'SELECT (base_score + upvote_count * $1) * exp(-$2 * EXTRACT(EPOCH FROM (now() - last_boost_at))/3600) AS credibility FROM rumors WHERE id=$3',
+                'SELECT (base_score + upvote_count * $1::numeric) * exp(-$2::numeric * EXTRACT(EPOCH FROM (now() - last_boost_at))/3600) AS credibility FROM rumors WHERE id=$3::uuid',
                 [config.UPVOTE_WEIGHT, config.DECAY_LAMBDA, rumor.id],
               )
             ).rows[0].credibility,
