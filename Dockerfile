@@ -12,5 +12,6 @@ COPY package*.json ./
 RUN npm ci --omit=dev --ignore-scripts
 COPY --from=build /app/dist ./dist
 COPY --from=build /app/src/db/migrations ./dist/db/migrations
+COPY --from=build /app/client ./client
 EXPOSE 3000
 CMD ["sh", "-c", "node dist/db/migrate.js && node dist/server.js"]
