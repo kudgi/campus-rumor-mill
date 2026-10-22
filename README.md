@@ -1,6 +1,6 @@
 # Campus Rumor Mill
 
-[![CI](https://github.com/OWNER/campus-rumor-mill/actions/workflows/ci.yml/badge.svg)](https://github.com/OWNER/campus-rumor-mill/actions/workflows/ci.yml)
+[![CI](https://github.com/kudgi/campus-rumor-mill/actions/workflows/ci.yml/badge.svg)](https://github.com/kudgi/campus-rumor-mill/actions/workflows/ci.yml)
 
 Anonymous campus rumors with credibility decay, durable anonymous sessions, idempotent voting, automatic debunking, and live WebSocket updates. Live demo: `https://your-deployment.example.com`.
 

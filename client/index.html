@@ -14,7 +14,9 @@
         <span class="brand-mark">CR</span>
         <span>Campus Rumor Mill<small>Anonymous campus pulse</small></span>
       </a>
-      <div class="connection"><span id="connection-dot" class="dot"></span><span id="status">Connecting...</span></div>
+      <div class="connection">
+        <span id="connection-dot" class="dot"></span><span id="status">Connecting...</span>
+      </div>
     </header>
 
     <main class="shell">
@@ -22,7 +24,10 @@
         <div>
           <p class="eyebrow">LIVE CAMPUS SIGNALS</p>
           <h1>What’s happening<br /><em>around campus?</em></h1>
-          <p class="hero-copy">Share what you’ve heard, see what is trending, and let the community decide what deserves attention.</p>
+          <p class="hero-copy">
+            Share what you’ve heard, see what is trending, and let the community decide what
+            deserves attention.
+          </p>
         </div>
         <div class="hero-orbit"><span></span><span></span><span></span><strong>LIVE</strong></div>
       </section>
@@ -32,28 +37,133 @@
       <section class="dashboard-grid">
         <div class="main-column">
           <article class="card composer">
-            <div class="section-heading"><div><p class="eyebrow">SAY SOMETHING</p><h2>Post a rumor</h2></div><span class="limit">500 characters</span></div>
+            <div class="section-heading">
+              <div>
+                <p class="eyebrow">SAY SOMETHING</p>
+                <h2>Post a rumor</h2>
+              </div>
+              <span class="limit">500 characters</span>
+            </div>
             <form id="rumor-form">
               <label for="rumor-text">What did you hear?</label>
-              <textarea id="rumor-text" maxlength="500" required placeholder="Keep it clear, respectful, and useful..."></textarea>
+              <textarea
+                id="rumor-text"
+                maxlength="500"
+                required
+                placeholder="Keep it clear, respectful, and useful..."
+              ></textarea>
               <div class="form-row">
-                <label class="field">Category<select id="rumor-category"><option value="academic">Academic</option><option value="hostel">Hostel</option><option value="canteen">Canteen</option><option value="sports">Sports</option><option value="events">Events</option><option value="other">Other</option></select></label>
-                <button class="button primary" type="submit">Post anonymously <span>→</span></button>
+                <label class="field"
+                  >Category<select id="rumor-category">
+                    <option value="academic">Academic</option>
+                    <option value="hostel">Hostel</option>
+                    <option value="canteen">Canteen</option>
+                    <option value="sports">Sports</option>
+                    <option value="events">Events</option>
+                    <option value="other">Other</option>
+                  </select></label
+                >
+                <button class="button primary" type="submit">
+                  Post anonymously <span>→</span>
+                </button>
               </div>
             </form>
           </article>
 
           <article class="card">
-            <div class="section-heading feed-heading"><div><p class="eyebrow">COMMUNITY FEED</p><h2>Latest rumors</h2></div><div class="filters"><select id="feed-category" aria-label="Filter by category"><option value="">All categories</option><option value="academic">Academic</option><option value="hostel">Hostel</option><option value="canteen">Canteen</option><option value="sports">Sports</option><option value="events">Events</option><option value="other">Other</option></select><select id="feed-sort" aria-label="Sort rumors"><option value="new">Newest</option><option value="credibility">Credibility</option></select></div></div>
+            <div class="section-heading feed-heading">
+              <div>
+                <p class="eyebrow">COMMUNITY FEED</p>
+                <h2>Latest rumors</h2>
+              </div>
+              <div class="filters">
+                <select id="feed-category" aria-label="Filter by category">
+                  <option value="">All categories</option>
+                  <option value="academic">Academic</option>
+                  <option value="hostel">Hostel</option>
+                  <option value="canteen">Canteen</option>
+                  <option value="sports">Sports</option>
+                  <option value="events">Events</option>
+                  <option value="other">Other</option></select
+                ><select id="feed-sort" aria-label="Sort rumors">
+                  <option value="new">Newest</option>
+                  <option value="credibility">Credibility</option>
+                </select>
+              </div>
+            </div>
             <div id="rumor-list" class="rumor-list"><p class="empty">Loading rumors...</p></div>
-            <button id="load-more" class="button secondary full hidden" type="button">Load more</button>
+            <button id="load-more" class="button secondary full hidden" type="button">
+              Load more
+            </button>
           </article>
         </div>
 
         <aside class="side-column">
-          <article class="card trending-card"><div class="section-heading"><div><p class="eyebrow">TOP SIGNALS</p><h2>Trending now</h2></div><span class="pulse"></span></div><ol id="trending" class="trending-list"><li class="empty">Waiting for live data...</li></ol></article>
-          <article class="card session-card"><div class="section-heading"><div><p class="eyebrow">YOUR SESSION</p><h2>Anonymous profile</h2></div><span class="lock">●</span></div><p class="session-id" id="session-id">Creating secure session...</p><div class="stats"><div><strong id="stat-rumors">—</strong><span>posted</span></div><div><strong id="stat-upvotes">—</strong><span>upvotes</span></div><div><strong id="stat-flags">—</strong><span>flags</span></div></div><details><summary>Lost your session?</summary><form id="recovery-form"><label for="recovery-code">Recovery code</label><input id="recovery-code" required placeholder="Paste your recovery code" /><button class="button secondary full" type="submit">Recover session</button></form></details><div id="recovery-display" class="recovery hidden"><strong>Save your recovery code</strong><code id="recovery-code-value"></code><button id="copy-recovery" class="button secondary" type="button">Copy recovery code</button><small>This code is shown once and will not be stored in this browser.</small></div></article>
-          <article class="card live-card"><div class="section-heading"><div><p class="eyebrow">LIVE FEED</p><h2>Activity</h2></div><select id="subscription" aria-label="Live category"><option value="">All categories</option><option value="academic">Academic</option><option value="hostel">Hostel</option><option value="canteen">Canteen</option><option value="sports">Sports</option><option value="events">Events</option><option value="other">Other</option></select></div><ul id="feed" class="activity-list"><li class="empty">No new activity yet.</li></ul></article>
+          <article class="card trending-card">
+            <div class="section-heading">
+              <div>
+                <p class="eyebrow">TOP SIGNALS</p>
+                <h2>Trending now</h2>
+              </div>
+              <span class="pulse"></span>
+            </div>
+            <ol id="trending" class="trending-list">
+              <li class="empty">Waiting for live data...</li>
+            </ol>
+          </article>
+          <article class="card session-card">
+            <div class="section-heading">
+              <div>
+                <p class="eyebrow">YOUR SESSION</p>
+                <h2>Anonymous profile</h2>
+              </div>
+              <span class="lock">●</span>
+            </div>
+            <p class="session-id" id="session-id">Creating secure session...</p>
+            <div class="stats">
+              <div><strong id="stat-rumors">—</strong><span>posted</span></div>
+              <div><strong id="stat-upvotes">—</strong><span>upvotes</span></div>
+              <div><strong id="stat-flags">—</strong><span>flags</span></div>
+            </div>
+            <details>
+              <summary>Lost your session?</summary>
+              <form id="recovery-form">
+                <label for="recovery-code">Recovery code</label
+                ><input id="recovery-code" required placeholder="Paste your recovery code" /><button
+                  class="button secondary full"
+                  type="submit"
+                >
+                  Recover session
+                </button>
+              </form>
+            </details>
+            <div id="recovery-display" class="recovery hidden">
+              <strong>Save your recovery code</strong><code id="recovery-code-value"></code
+              ><button id="copy-recovery" class="button secondary" type="button">
+                Copy recovery code</button
+              ><small>This code is shown once and will not be stored in this browser.</small>
+            </div>
+          </article>
+          <article class="card live-card">
+            <div class="section-heading">
+              <div>
+                <p class="eyebrow">LIVE FEED</p>
+                <h2>Activity</h2>
+              </div>
+              <select id="subscription" aria-label="Live category">
+                <option value="">All categories</option>
+                <option value="academic">Academic</option>
+                <option value="hostel">Hostel</option>
+                <option value="canteen">Canteen</option>
+                <option value="sports">Sports</option>
+                <option value="events">Events</option>
+                <option value="other">Other</option>
+              </select>
+            </div>
+            <ul id="feed" class="activity-list">
+              <li class="empty">No new activity yet.</li>
+            </ul>
+          </article>
         </aside>
       </section>
     </main>
