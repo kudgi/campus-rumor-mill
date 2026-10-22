@@ -11,7 +11,15 @@ const env = z.object({
   DECAY_LAMBDA: z.coerce.number().positive().default(0.05),
   UPVOTE_WEIGHT: z.coerce.number().nonnegative().default(5),
   INITIAL_CREDIBILITY: z.coerce.number().min(0).max(100).default(50),
-  COOKIE_SECURE: z.coerce.boolean().default(false),
+  COOKIE_SECURE: z
+    .enum(['true', 'false'])
+    .default('false')
+    .transform((value) => value === 'true'),
+  TRUST_PROXY: z.coerce
+    .number()
+    .int()
+    .nonnegative()
+    .default(process.env.NODE_ENV === 'production' ? 1 : 0),
   SESSION_FINGERPRINT_LIMIT: z.coerce.number().int().positive().default(5),
   SESSION_FINGERPRINT_WINDOW_SECONDS: z.coerce.number().int().positive().default(3600),
 });
