@@ -4,8 +4,6 @@
 
 Anonymous campus rumors with credibility decay, durable anonymous sessions, idempotent voting, automatic debunking, and live WebSocket updates.
 
-Live demo: **TODO: add Render URL**
-
 ## Features and stack
 
 - Node.js 22, Express, TypeScript, PostgreSQL, `pg`, `ws`, Zod
