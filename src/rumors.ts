@@ -45,6 +45,13 @@ export function calculateCredibility(
     ),
   );
 }
+export function credibilitySqlExpression(
+  alias: string,
+  weightPlaceholder: string,
+  lambdaPlaceholder: string,
+) {
+  return `(${alias}.base_score + ${alias}.upvote_count * ${weightPlaceholder}::numeric) * exp(-${lambdaPlaceholder}::numeric * EXTRACT(EPOCH FROM (now() - ${alias}.last_boost_at))/3600)`;
+}
 const selectColumns =
   'r.id,r.session_id,r.text,r.category,r.status,r.base_score,r.upvote_count,r.flag_count,r.created_at,r.last_boost_at';
 const returnColumns =
@@ -97,11 +104,18 @@ router.get(
       values.push(q.status);
       filters.push(`r.status=$${values.length}`);
     }
+    const weightPlaceholder = `$${values.length + 1}`;
+    const lambdaPlaceholder = `$${values.length + 2}`;
+    if (q.sort === 'credibility') values.push(config.UPVOTE_WEIGHT, config.DECAY_LAMBDA);
     values.push(q.limit, (q.page - 1) * q.limit);
     const order =
-      q.sort === 'credibility' ? 'r.upvote_count DESC, r.created_at DESC' : 'r.created_at DESC';
+      q.sort === 'credibility'
+        ? `${credibilitySqlExpression('r', weightPlaceholder, lambdaPlaceholder)} DESC, r.created_at DESC, r.id DESC`
+        : 'r.created_at DESC, r.id DESC';
+    const limitPlaceholder = `$${values.length - 1}`;
+    const offsetPlaceholder = `$${values.length}`;
     const result = await query(
-      `SELECT ${selectColumns} FROM rumors r ${filters.length ? `WHERE ${filters.join(' AND ')}` : ''} ORDER BY ${order} LIMIT $${values.length - 1} OFFSET $${values.length}`,
+      `SELECT ${selectColumns} FROM rumors r ${filters.length ? `WHERE ${filters.join(' AND ')}` : ''} ORDER BY ${order} LIMIT ${limitPlaceholder} OFFSET ${offsetPlaceholder}`,
       values,
     );
     res.json({ items: (result.rows as RumorRow[]).map(enrich), page: q.page, limit: q.limit });
