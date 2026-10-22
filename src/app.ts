@@ -16,6 +16,7 @@ import path from 'node:path';
 
 export function createApp() {
   const app = express();
+  app.set('trust proxy', config.TRUST_PROXY);
   app.use(
     helmet({
       contentSecurityPolicy: {
