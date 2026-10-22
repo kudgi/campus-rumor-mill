@@ -1,31 +1,36 @@
 # API reference
 
-| Method | Path                                   | Auth      | Purpose                                    |
-| ------ | -------------------------------------- | --------- | ------------------------------------------ |
-| POST   | `/session/init`                        | No        | Create token and one-time recovery code    |
-| POST   | `/session/recover`                     | No        | Rotate token using recovery code           |
-| GET    | `/session/me`                          | Session   | Session identity and counters              |
-| POST   | `/rumor`                               | Session   | Create a rumor                             |
-| GET    | `/rumors`, `/rumor/category/:category` | No        | List rumors                                |
-| GET    | `/rumor/:id`                           | No        | Read rumor                                 |
-| GET    | `/rumor/:id/credibility`               | No        | Read decay components                      |
-| POST   | `/rumor/:id/upvote`                    | Session   | Idempotent upvote                          |
-| POST   | `/rumor/:id/flag`                      | Session   | Idempotent flag                            |
-| PATCH  | `/rumor/:id/debunk`                    | Admin key | Mark debunked; repeated debunk returns 409 |
-| GET    | `/trending?limit=1..50`                | No        | Top active rumors                          |
-| WS     | `/rumors/live`                         | Optional  | Live events and category subscriptions     |
+All local examples use `http://localhost:3000`.
 
-Errors use `{ "error": { "code": "...", "message": "...", "details": [] } }`.
-Validation details are a clean list of `{ "path": "...", "message": "..." }`.
-Public rumor, trending, vote, debunk, and WebSocket payloads never include `session_id`.
+| Method | Path                        | Auth              | Purpose                                             |
+| ------ | --------------------------- | ----------------- | --------------------------------------------------- |
+| POST   | `/session/init`             | No                | Create a session, token, and one-time recovery code |
+| POST   | `/session/recover`          | No                | Rotate a token using a recovery code                |
+| GET    | `/session/me`               | Session           | Return session identity and counters                |
+| POST   | `/rumor`                    | Session           | Create a rumor                                      |
+| GET    | `/rumors`                   | No                | List rumors with filters and pagination             |
+| GET    | `/rumor/:id`                | No                | Read a rumor                                        |
+| GET    | `/rumor/category/:category` | No                | List rumors in a category                           |
+| GET    | `/rumor/:id/credibility`    | No                | Read the current credibility components             |
+| POST   | `/rumor/:id/upvote`         | Session           | Add one unique upvote                               |
+| POST   | `/rumor/:id/flag`           | Session           | Add one unique flag                                 |
+| PATCH  | `/rumor/:id/debunk`         | `x-admin-api-key` | Debunk a rumor; repeated debunking returns 409      |
+| GET    | `/trending?limit=1..50`     | No                | Return active rumors by decayed credibility         |
+| GET    | `/health`                   | No                | Check database connectivity                         |
+| WS     | `/rumors/live`              | Optional          | Receive live events and category subscriptions      |
 
-For example, an already debunked rumor returns:
+Errors use:
 
 ```json
 {
   "error": {
-    "code": "ALREADY_DEBUNKED",
-    "message": "Rumor is already debunked"
+    "code": "ERROR_CODE",
+    "message": "Human-readable message",
+    "details": []
   }
 }
 ```
+
+`details` is omitted unless the error has additional information. Validation details contain `path` and `message`. Public rumor, trending, vote, debunk, and WebSocket payloads do not contain `session_id`.
+
+The WebSocket client can send `{"subscribe":"hostel"}` to filter category events. `{"subscribe":null}` and `{"subscribe":"all"}` clear the filter.

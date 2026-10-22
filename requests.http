@@ -1,41 +1,52 @@
 @base=http://localhost:3000
-@token=replace-after-session-init
+@token={{$dotenv SESSION_TOKEN}}
+@adminKey={{$dotenv ADMIN_API_KEY}}
+@recoveryCode={{$dotenv RECOVERY_CODE}}
+@rumorId=00000000-0000-0000-0000-000000000000
+
+### Create a session
 POST {{base}}/session/init
-###
+
+### Get session counters
 GET {{base}}/session/me
 Authorization: Bearer {{token}}
-###
+
+### Create a rumor
 POST {{base}}/rumor
 Authorization: Bearer {{token}}
 Content-Type: application/json
 
 {"text":"The library is open late today.","category":"academic"}
-###
+
+### List rumors
 GET {{base}}/rumors?sort=credibility&limit=10
-###
+
+### List a category
 GET {{base}}/rumor/category/academic
-###
-GET {{base}}/rumor/00000000-0000-0000-0000-000000000000
-###
+
+### Get one rumor
+GET {{base}}/rumor/{{rumorId}}
+
+### Get credibility
+GET {{base}}/rumor/{{rumorId}}/credibility
+
+### Upvote
+POST {{base}}/rumor/{{rumorId}}/upvote
+Authorization: Bearer {{token}}
+
+### Flag
+POST {{base}}/rumor/{{rumorId}}/flag
+Authorization: Bearer {{token}}
+
+### Trending
 GET {{base}}/trending?limit=10
-###
-GET {{base}}/trending?limit=51
-###
-GET {{base}}/rumor/00000000-0000-0000-0000-000000000000/credibility
-###
-POST {{base}}/rumor/00000000-0000-0000-0000-000000000000/upvote
-Authorization: Bearer {{token}}
-###
-POST {{base}}/rumor/00000000-0000-0000-0000-000000000000/flag
-Authorization: Bearer {{token}}
-###
-PATCH {{base}}/rumor/00000000-0000-0000-0000-000000000000/debunk
-x-admin-api-key: replace
-###
-PATCH {{base}}/rumor/00000000-0000-0000-0000-000000000000/debunk
-x-admin-api-key: replace
-###
+
+### Admin debunk
+PATCH {{base}}/rumor/{{rumorId}}/debunk
+x-admin-api-key: {{adminKey}}
+
+### Recover a session
 POST {{base}}/session/recover
 Content-Type: application/json
 
-{"recoveryCode":"replace-after-session-init"}
+{"recoveryCode":"{{recoveryCode}}"}
