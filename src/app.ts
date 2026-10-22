@@ -41,7 +41,7 @@ export function createApp() {
   });
   app.use('/session', sessionRouter);
   app.use('/rumor', rumorRouter);
-  app.get('/rumors', rumorListRouter);
+  app.use('/rumors', rumorListRouter);
   app.use('/trending', trendingRouter);
   app.use((_req, _res, next) => next(new AppError(404, 'NOT_FOUND', 'Route not found')));
   app.use(errorHandler);

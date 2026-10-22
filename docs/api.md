@@ -17,7 +17,7 @@ All local examples use `http://localhost:3000`.
 | PATCH  | `/rumor/:id/debunk`         | `x-admin-api-key` | Debunk a rumor; repeated debunking returns 409      |
 | GET    | `/trending?limit=1..50`     | No                | Return active rumors by decayed credibility         |
 | GET    | `/health`                   | No                | Check database connectivity                         |
-| WS     | `/rumors/live`              | Optional          | Receive live events and category subscriptions      |
+| WS     | `/rumors/live`              | No                | Receive live events and category subscriptions      |
 
 Errors use:
 

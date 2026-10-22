@@ -81,7 +81,7 @@ See [docs/architecture.md](docs/architecture.md) for the component overview.
 | PATCH  | `/rumor/:id/debunk`         | `x-admin-api-key` | Debunk a rumor; returns 409 if already debunked                  |
 | GET    | `/trending?limit=1..50`     | No                | Return active rumors by current credibility                      |
 | GET    | `/health`                   | No                | Check database connectivity                                      |
-| WS     | `/rumors/live`              | Optional          | Receive live events and subscribe by category                    |
+| WS     | `/rumors/live`              | No                | Receive live events and subscribe by category                    |
 
 Errors use `{ "error": { "code": "...", "message": "...", "details": [...] } }`. The `details` property is included for validation or throttling information when applicable. Public rumor, trending, vote, debunk, and WebSocket payloads do not include `session_id`.
 
@@ -158,13 +158,3 @@ The repository includes a `Dockerfile` and a `render.yaml` blueprint that can be
 2. Provision the managed PostgreSQL database defined by the blueprint.
 3. Configure the required secrets and environment variables in Render.
 4. Deploy and verify the service health check and database migration startup.
-
-## Final checklist
-
-- [ ] No `.env` files, secrets, or credentials are committed
-- [ ] CI is green
-- [ ] The README and API documentation render correctly
-- [ ] The local demo page and WebSocket events work
-- [ ] Database migrations succeed
-- [ ] Repository description and topics are set
-- [ ] Repository is pinned on the GitHub profile
