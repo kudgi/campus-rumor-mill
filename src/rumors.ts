@@ -1,3 +1,4 @@
+import crypto from 'node:crypto';
 import { Router } from 'express';
 import { z } from 'zod';
 import { config } from './config';
@@ -60,6 +61,12 @@ export const enrich = (row: RumorRow): RumorRow & { credibility: number } => {
   return { ...row, credibility: calculateCredibility(row) };
 };
 const router = Router();
+function matchesAdminKey(value: string | undefined) {
+  if (!value) return false;
+  const expected = crypto.createHash('sha256').update(config.ADMIN_API_KEY).digest();
+  const received = crypto.createHash('sha256').update(value).digest();
+  return crypto.timingSafeEqual(expected, received);
+}
 router.post(
   '/',
   requireSession,
@@ -87,6 +94,28 @@ router.post(
     });
     res.status(201).json(enrich(result));
     broadcast('rumor:new', enrich(result), req.body.category);
+  }),
+);
+router.patch(
+  '/:id/debunk',
+  validate(idSchema, 'params'),
+  asyncRoute(async (req, res) => {
+    if (!matchesAdminKey(req.get('x-admin-api-key')))
+      throw new AppError(401, 'UNAUTHORIZED', 'Invalid admin API key');
+    const result = await query(
+      `UPDATE rumors SET status='debunked' WHERE id=$1 AND status <> 'debunked' RETURNING ${returnColumns}`,
+      [String(req.params.id)],
+    );
+    if (!result.rowCount) {
+      const existing = await query<{ status: string }>('SELECT status FROM rumors WHERE id=$1', [
+        String(req.params.id),
+      ]);
+      if (!existing.rowCount) throw new AppError(404, 'NOT_FOUND', 'Rumor not found');
+      throw new AppError(409, 'ALREADY_DEBUNKED', 'Rumor is already debunked');
+    }
+    const rumor = enrich(result.rows[0] as RumorRow);
+    broadcast('rumor:debunked', rumor, rumor.category);
+    res.json(rumor);
   }),
 );
 router.get(
