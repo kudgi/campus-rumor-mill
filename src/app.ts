@@ -47,6 +47,5 @@ export function createApp() {
 }
 export function createServer() {
   const server = http.createServer(createApp());
-  attachWebSocket(server);
-  return server;
+  return { server, websocket: attachWebSocket(server) };
 }

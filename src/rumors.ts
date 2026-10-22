@@ -6,8 +6,8 @@ import { query, withTransaction } from './db/pool';
 import { AppError, isUniqueViolation } from './errors';
 import { asyncRoute, requireSession, validate } from './middleware';
 import { broadcast } from './ws';
+import { categories } from './constants';
 
-const categories = ['academic', 'hostel', 'canteen', 'sports', 'events', 'other'] as const;
 const createSchema = z.object({
   text: z.string().trim().min(1).max(500),
   category: z.enum(categories),
