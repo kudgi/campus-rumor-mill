@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { config } from './config';
 import { query } from './db/pool';
-import { credibilitySqlExpression, enrich } from './rumors';
+import { credibilitySqlExpression, enrich, toPublic } from './rumors';
 
 const router = Router();
 export async function getTrending(limit = 10) {
@@ -9,7 +9,7 @@ export async function getTrending(limit = 10) {
     `SELECT r.* FROM rumors r WHERE status=$1::varchar ORDER BY ${credibilitySqlExpression('r', '$2', '$3')} DESC, r.created_at DESC, r.id DESC LIMIT $4::integer`,
     ['active', config.UPVOTE_WEIGHT, config.DECAY_LAMBDA, Math.min(Math.max(limit, 1), 50)],
   );
-  return result.rows.map((row) => enrich(row as Parameters<typeof enrich>[0]));
+  return result.rows.map((row) => toPublic(enrich(row as Parameters<typeof enrich>[0])));
 }
 router.get('/', async (_req, res, next) => {
   try {

@@ -60,6 +60,11 @@ const returnColumns =
 export const enrich = (row: RumorRow): RumorRow & { credibility: number } => {
   return { ...row, credibility: calculateCredibility(row) };
 };
+export function toPublic<T extends { session_id?: string }>(row: T) {
+  const publicRow = { ...row };
+  delete publicRow.session_id;
+  return publicRow;
+}
 const router = Router();
 function matchesAdminKey(value: string | undefined) {
   if (!value) return false;
@@ -92,8 +97,9 @@ router.post(
       );
       return rumor.rows[0];
     });
-    res.status(201).json(enrich(result));
-    broadcast('rumor:new', enrich(result), req.body.category);
+    const rumor = toPublic(enrich(result));
+    res.status(201).json(rumor);
+    broadcast('rumor:new', rumor, req.body.category);
   }),
 );
 router.patch(
@@ -113,7 +119,7 @@ router.patch(
       if (!existing.rowCount) throw new AppError(404, 'NOT_FOUND', 'Rumor not found');
       throw new AppError(409, 'ALREADY_DEBUNKED', 'Rumor is already debunked');
     }
-    const rumor = enrich(result.rows[0] as RumorRow);
+    const rumor = toPublic(enrich(result.rows[0] as RumorRow));
     broadcast('rumor:debunked', rumor, rumor.category);
     res.json(rumor);
   }),
@@ -147,7 +153,11 @@ router.get(
       `SELECT ${selectColumns} FROM rumors r ${filters.length ? `WHERE ${filters.join(' AND ')}` : ''} ORDER BY ${order} LIMIT ${limitPlaceholder} OFFSET ${offsetPlaceholder}`,
       values,
     );
-    res.json({ items: (result.rows as RumorRow[]).map(enrich), page: q.page, limit: q.limit });
+    res.json({
+      items: (result.rows as RumorRow[]).map((row) => toPublic(enrich(row))),
+      page: q.page,
+      limit: q.limit,
+    });
   }),
 );
 router.get(
@@ -158,7 +168,7 @@ router.get(
       `SELECT ${selectColumns} FROM rumors r WHERE category=$1 ORDER BY created_at DESC LIMIT 50`,
       [String(req.params.category)],
     );
-    res.json({ items: (result.rows as RumorRow[]).map(enrich) });
+    res.json({ items: (result.rows as RumorRow[]).map((row) => toPublic(enrich(row))) });
   }),
 );
 router.get(
@@ -169,7 +179,7 @@ router.get(
       String(req.params.id),
     ]);
     if (!result.rowCount) throw new AppError(404, 'NOT_FOUND', 'Rumor not found');
-    res.json(enrich(result.rows[0] as RumorRow));
+    res.json(toPublic(enrich(result.rows[0] as RumorRow)));
   }),
 );
 router.get(
@@ -241,7 +251,7 @@ async function vote(rumorId: string, sessionId: string, type: 'upvote' | 'flag')
     );
     return enrich(updated.rows[0]);
   });
-  const enriched = enrich(result as RumorRow);
+  const enriched = toPublic(enrich(result as RumorRow));
   broadcast(type === 'upvote' ? 'rumor:upvoted' : 'rumor:flagged', enriched, enriched.category);
   if (type === 'flag' && enriched.status === 'debunked')
     broadcast('rumor:debunked', enriched, enriched.category);

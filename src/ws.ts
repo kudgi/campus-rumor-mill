@@ -2,13 +2,17 @@ import { Server as HttpServer } from 'node:http';
 import { WebSocketServer, WebSocket } from 'ws';
 import { getTrending } from './trending';
 import { query } from './db/pool';
-import { calculateCredibility } from './rumors';
+import { calculateCredibility, toPublic } from './rumors';
 
 type Client = { socket: WebSocket; category?: string; isAlive: boolean };
 const clients = new Set<Client>();
 const lastCredibility = new Map<string, number>();
 export function broadcast(event: string, data: unknown, category?: string) {
-  const message = JSON.stringify({ event, data });
+  const publicData =
+    typeof data === 'object' && data !== null && 'session_id' in data
+      ? toPublic(data as { session_id?: string })
+      : data;
+  const message = JSON.stringify({ event, data: publicData });
   for (const client of clients)
     if (
       client.socket.readyState === WebSocket.OPEN &&
