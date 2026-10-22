@@ -7,10 +7,11 @@ import pinoHttp from 'pino-http';
 import { config } from './config';
 import { errorHandler } from './middleware';
 import sessionRouter from './session';
-import rumorRouter from './rumors';
+import rumorRouter, { rumorListRouter } from './rumors';
 import trendingRouter from './trending';
 import { attachWebSocket } from './ws';
 import { query } from './db/pool';
+import { AppError } from './errors';
 import path from 'node:path';
 
 export function createApp() {
@@ -40,8 +41,9 @@ export function createApp() {
   });
   app.use('/session', sessionRouter);
   app.use('/rumor', rumorRouter);
-  app.use('/rumors', rumorRouter);
+  app.get('/rumors', rumorListRouter);
   app.use('/trending', trendingRouter);
+  app.use((_req, _res, next) => next(new AppError(404, 'NOT_FOUND', 'Route not found')));
   app.use(errorHandler);
   return app;
 }

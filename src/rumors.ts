@@ -66,6 +66,7 @@ export function toPublic<T extends { session_id?: string }>(row: T) {
   return publicRow;
 }
 const router = Router();
+export const rumorListRouter = Router();
 function matchesAdminKey(value: string | undefined) {
   if (!value) return false;
   const expected = crypto.createHash('sha256').update(config.ADMIN_API_KEY).digest();
@@ -124,7 +125,7 @@ router.patch(
     res.json(rumor);
   }),
 );
-router.get(
+rumorListRouter.get(
   '/',
   validate(listSchema, 'query'),
   asyncRoute(async (req, res) => {
