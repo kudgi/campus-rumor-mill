@@ -58,25 +58,24 @@ router.post(
   requireSession,
   validate(createSchema),
   asyncRoute(async (req, res) => {
-    const allowed = await query(
-      "SELECT 1 FROM sessions WHERE id=$1 AND (last_rumor_at IS NULL OR last_rumor_at <= now() - interval '1 hour')",
-      [req.session!.id],
-    );
-    if (!allowed.rowCount) {
-      const retry = await query<{ seconds: number }>(
-        "SELECT EXTRACT(EPOCH FROM (last_rumor_at + interval '1 hour' - now())) AS seconds FROM sessions WHERE id=$1",
+    const result = await withTransaction(async (client) => {
+      const allowed = await client.query<{ id: string }>(
+        "UPDATE sessions SET last_rumor_at=now() WHERE id=$1 AND (last_rumor_at IS NULL OR last_rumor_at <= now() - interval '1 hour') RETURNING id",
         [req.session!.id],
       );
-      throw new AppError(429, 'RUMOR_RATE_LIMITED', 'Only one rumor may be posted per hour', {
-        retryAfterSeconds: Math.ceil(Number(retry.rows[0].seconds)),
-      });
-    }
-    const result = await withTransaction(async (client) => {
+      if (!allowed.rowCount) {
+        const retry = await client.query<{ seconds: string }>(
+          "SELECT EXTRACT(EPOCH FROM (last_rumor_at + interval '1 hour' - now())) AS seconds FROM sessions WHERE id=$1",
+          [req.session!.id],
+        );
+        throw new AppError(429, 'RUMOR_RATE_LIMITED', 'Only one rumor may be posted per hour', {
+          retryAfterSeconds: Math.max(1, Math.ceil(Number(retry.rows[0]?.seconds ?? 3600))),
+        });
+      }
       const rumor = await client.query(
         `INSERT INTO rumors(session_id,text,category,base_score) VALUES($1,$2,$3,$4) RETURNING ${returnColumns}`,
         [req.session!.id, req.body.text, req.body.category, config.INITIAL_CREDIBILITY],
       );
-      await client.query('UPDATE sessions SET last_rumor_at=now() WHERE id=$1', [req.session!.id]);
       return rumor.rows[0];
     });
     res.status(201).json(enrich(result));
