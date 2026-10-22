@@ -2,7 +2,9 @@
 
 [![CI](https://github.com/kudgi/campus-rumor-mill/actions/workflows/ci.yml/badge.svg)](https://github.com/kudgi/campus-rumor-mill/actions/workflows/ci.yml)
 
-Anonymous campus rumors with credibility decay, durable anonymous sessions, idempotent voting, automatic debunking, and live WebSocket updates. Live demo: `https://your-deployment.example.com`.
+Anonymous campus rumors with credibility decay, durable anonymous sessions, idempotent voting, automatic debunking, and live WebSocket updates.
+
+Live demo: **TODO: add Render URL**
 
 ## Features and stack
 
@@ -36,6 +38,7 @@ The demo is at `http://localhost:3000/`; health is `GET /health`. For a local no
 | `UPVOTE_WEIGHT`       | Score added per upvote              |
 | `INITIAL_CREDIBILITY` | New rumor score                     |
 | `COOKIE_SECURE`       | Enable secure cookies in production |
+| `TRUST_PROXY`         | Number of trusted reverse proxies   |
 
 See `.env.example` for all variables and defaults.
 
@@ -98,25 +101,13 @@ CI starts PostgreSQL, runs migrations, executes all checks, and builds the Docke
 4. Render builds the Docker image; its startup command runs migrations before the server.
 5. Verify `https://YOUR-SERVICE.onrender.com/health`.
 
-Replace the badge owner, live URL, and the sample host in the WebSocket section after deployment. Test with `curl -X POST https://YOUR-SERVICE.onrender.com/session/init`.
+Test the deployed service with `curl -X POST https://YOUR-SERVICE.onrender.com/session/init`.
 
-## Planned commit sequence
+## Known limitations and scaling
 
-1. `chore: init project with TypeScript, ESLint, Prettier` — package/config files
-2. `feat(db): add schema and migrations` — `src/db/**`
-3. `feat(session): add anonymous session flow` — config, middleware, session routes
-4. `feat(session): add recovery code flow` — recovery validation and rotation
-5. `feat(rumor): add rumor API and rate limit` — rumor routes and validation
-6. `feat(credibility): add decay-on-read scoring` — scoring and credibility endpoint
-7. `feat(votes): add idempotent voting` — votes schema and transactions
-8. `feat(debunk): add automatic and admin debunking` — thresholds and endpoint
-9. `feat(ws): add live feed and subscriptions` — WebSocket hub/ticker
-10. `feat(trending): add trending endpoint and broadcasts` — trending service
-11. `test: add API and concurrency coverage` — `tests/**`
-12. `chore(docker): add Docker and CI` — Docker, Compose, workflow
-13. `docs: add API and deployment documentation` — README/docs/templates
-
-Use `feature/<name>` branches and merge pull requests into deployable `main`.
+- The WebSocket hub is process-local. Horizontal scaling requires Redis or another pub/sub layer to fan events out to every instance.
+- Offset pagination is simple and predictable, but inserts can shift later pages under heavy write traffic. Cursor pagination would be preferable at larger scale.
+- Recovery codes restore session identity after token loss, which is useful for continuity but creates a deliberate trade-off against perfect anonymity.
 
 ## Final sharing checklist
 

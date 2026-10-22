@@ -13,7 +13,13 @@ Content-Type: application/json
 ###
 GET {{base}}/rumors?sort=credibility&limit=10
 ###
+GET {{base}}/rumor/category/academic
+###
+GET {{base}}/rumor/00000000-0000-0000-0000-000000000000
+###
 GET {{base}}/trending?limit=10
+###
+GET {{base}}/trending?limit=51
 ###
 GET {{base}}/rumor/00000000-0000-0000-0000-000000000000/credibility
 ###
@@ -22,6 +28,9 @@ Authorization: Bearer {{token}}
 ###
 POST {{base}}/rumor/00000000-0000-0000-0000-000000000000/flag
 Authorization: Bearer {{token}}
+###
+PATCH {{base}}/rumor/00000000-0000-0000-0000-000000000000/debunk
+x-admin-api-key: replace
 ###
 PATCH {{base}}/rumor/00000000-0000-0000-0000-000000000000/debunk
 x-admin-api-key: replace
