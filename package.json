@@ -10,7 +10,8 @@
     "lint": "eslint . --ext .ts",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "test": "jest --runInBand",
+    "test": "jest --runInBand --coverage",
+    "test:unit": "jest --runInBand --testPathIgnorePatterns=integration.test.ts",
     "test:watch": "jest --watch",
     "migrate": "tsx src/db/migrate.ts",
     "prepare": "husky"
