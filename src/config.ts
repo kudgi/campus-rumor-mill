@@ -22,6 +22,8 @@ const env = z.object({
     .default(process.env.NODE_ENV === 'production' ? 1 : 0),
   SESSION_FINGERPRINT_LIMIT: z.coerce.number().int().positive().default(5),
   SESSION_FINGERPRINT_WINDOW_SECONDS: z.coerce.number().int().positive().default(3600),
+  RECOVERY_ATTEMPT_LIMIT: z.coerce.number().int().positive().default(10),
+  RECOVERY_ATTEMPT_WINDOW_SECONDS: z.coerce.number().int().positive().default(3600),
 });
 
 export const config = env.parse(process.env);
