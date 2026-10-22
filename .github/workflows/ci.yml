@@ -19,6 +19,7 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      - run: npm run format:check
       - run: npm run lint
       - run: npm run type-check
       - run: npm run migrate
@@ -32,4 +33,26 @@ jobs:
           SESSION_SECRET: ci-session-secret
           ADMIN_API_KEY: ci-admin-key
           RUN_INTEGRATION_TESTS: 'true'
-      - run: docker build .
+      - uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: coverage
+      - run: docker build -t campus-rumor-mill:ci .
+      - run: |
+          docker run -d --name campus-rumor-mill-ci \
+            --network host \
+            -e DATABASE_URL=postgresql://postgres:postgres@localhost:5432/campus_rumor_mill \
+            -e PORT=3000 \
+            -e SESSION_SECRET=ci-session-secret \
+            -e ADMIN_API_KEY=ci-admin-key \
+            campus-rumor-mill:ci
+          for i in {1..30}; do
+            if curl --fail http://localhost:3000/health; then
+              exit 0
+            fi
+            sleep 2
+          done
+          docker logs campus-rumor-mill-ci
+          exit 1
+      - if: always()
+        run: docker rm -f campus-rumor-mill-ci

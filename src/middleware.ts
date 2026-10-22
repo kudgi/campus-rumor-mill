@@ -2,6 +2,7 @@ import crypto from 'node:crypto';
 import { NextFunction, Request, Response } from 'express';
 import { AppError } from './errors';
 import { query } from './db/pool';
+import { z } from 'zod';
 
 // eslint-disable-next-line @typescript-eslint/no-namespace
 declare global {
@@ -23,15 +24,13 @@ export function errorHandler(error: unknown, _req: Request, res: Response, _next
       ? error
       : new AppError(500, 'INTERNAL_ERROR', 'Internal server error');
   if (!(error instanceof AppError)) console.error(error);
-  res
-    .status(appError.status)
-    .json({
-      error: {
-        code: appError.code,
-        message: appError.message,
-        ...(appError.details ? { details: appError.details } : {}),
-      },
-    });
+  res.status(appError.status).json({
+    error: {
+      code: appError.code,
+      message: appError.message,
+      ...(appError.details ? { details: appError.details } : {}),
+    },
+  });
 }
 export function requireSession(req: Request, _res: Response, next: NextFunction) {
   const header = req.get('authorization');
@@ -56,7 +55,11 @@ export function validate<T>(
       req[source] = schema.parse(req[source]) as never;
       next();
     } catch (error) {
-      next(new AppError(400, 'VALIDATION_ERROR', 'Request validation failed', error));
+      const details =
+        error instanceof z.ZodError
+          ? error.issues.map((issue) => ({ path: issue.path.join('.'), message: issue.message }))
+          : undefined;
+      next(new AppError(400, 'VALIDATION_ERROR', 'Request validation failed', details));
     }
   };
 }

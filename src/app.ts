@@ -7,15 +7,16 @@ import pinoHttp from 'pino-http';
 import { config } from './config';
 import { errorHandler } from './middleware';
 import sessionRouter from './session';
-import rumorRouter from './rumors';
+import rumorRouter, { rumorListRouter } from './rumors';
 import trendingRouter from './trending';
-import { attachWebSocket, broadcast } from './ws';
+import { attachWebSocket } from './ws';
 import { query } from './db/pool';
 import { AppError } from './errors';
 import path from 'node:path';
 
 export function createApp() {
   const app = express();
+  app.set('trust proxy', config.TRUST_PROXY);
   app.use(
     helmet({
       contentSecurityPolicy: {
@@ -40,28 +41,13 @@ export function createApp() {
   });
   app.use('/session', sessionRouter);
   app.use('/rumor', rumorRouter);
-  app.use('/rumors', rumorRouter);
+  app.get('/rumors', rumorListRouter);
   app.use('/trending', trendingRouter);
-  app.patch('/rumor/:id/debunk', async (req, res, next) => {
-    try {
-      if (req.get('x-admin-api-key') !== config.ADMIN_API_KEY)
-        throw new AppError(401, 'UNAUTHORIZED', 'Invalid admin API key');
-      const result = await query('UPDATE rumors SET status=$1 WHERE id=$2 RETURNING id,category', [
-        'debunked',
-        req.params.id,
-      ]);
-      if (!result.rowCount) throw new AppError(404, 'NOT_FOUND', 'Rumor not found');
-      broadcast('rumor:debunked', result.rows[0], result.rows[0].category);
-      res.json(result.rows[0]);
-    } catch (error) {
-      next(error);
-    }
-  });
+  app.use((_req, _res, next) => next(new AppError(404, 'NOT_FOUND', 'Route not found')));
   app.use(errorHandler);
   return app;
 }
 export function createServer() {
   const server = http.createServer(createApp());
-  attachWebSocket(server);
-  return server;
+  return { server, websocket: attachWebSocket(server) };
 }

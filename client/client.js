@@ -1,5 +1,4 @@
 const tokenKey = 'campusRumorMillToken';
-const recoveryKey = 'campusRumorMillRecoveryCode';
 const state = { token: localStorage.getItem(tokenKey), page: 1, loading: false };
 const $ = (selector) => document.querySelector(selector);
 const api = async (path, options = {}) => {
@@ -33,7 +32,6 @@ function saveSession(data) {
   state.token = data.token;
   localStorage.setItem(tokenKey, data.token);
   if (data.recoveryCode) {
-    localStorage.setItem(recoveryKey, data.recoveryCode);
     $('#recovery-code-value').textContent = data.recoveryCode;
     $('#recovery-display').classList.remove('hidden');
   }
@@ -208,6 +206,10 @@ $('#recovery-form').addEventListener('submit', async (event) => {
   } catch (error) {
     showNotice(error.message, 'error');
   }
+});
+$('#copy-recovery').addEventListener('click', async () => {
+  await navigator.clipboard.writeText($('#recovery-code-value').textContent);
+  showNotice('Recovery code copied. Store it somewhere safe.');
 });
 $('#feed-category').addEventListener('change', () => loadRumors(true));
 $('#feed-sort').addEventListener('change', () => loadRumors(true));

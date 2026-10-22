@@ -1,3 +1,4 @@
+import crypto from 'node:crypto';
 import { Router } from 'express';
 import { z } from 'zod';
 import { config } from './config';
@@ -5,8 +6,8 @@ import { query, withTransaction } from './db/pool';
 import { AppError, isUniqueViolation } from './errors';
 import { asyncRoute, requireSession, validate } from './middleware';
 import { broadcast } from './ws';
+import { categories } from './constants';
 
-const categories = ['academic', 'hostel', 'canteen', 'sports', 'events', 'other'] as const;
 const createSchema = z.object({
   text: z.string().trim().min(1).max(500),
   category: z.enum(categories),
@@ -45,6 +46,13 @@ export function calculateCredibility(
     ),
   );
 }
+export function credibilitySqlExpression(
+  alias: string,
+  weightPlaceholder: string,
+  lambdaPlaceholder: string,
+) {
+  return `(${alias}.base_score + ${alias}.upvote_count * ${weightPlaceholder}::numeric) * exp(-${lambdaPlaceholder}::numeric * EXTRACT(EPOCH FROM (now() - ${alias}.last_boost_at))/3600)`;
+}
 const selectColumns =
   'r.id,r.session_id,r.text,r.category,r.status,r.base_score,r.upvote_count,r.flag_count,r.created_at,r.last_boost_at';
 const returnColumns =
@@ -52,38 +60,72 @@ const returnColumns =
 export const enrich = (row: RumorRow): RumorRow & { credibility: number } => {
   return { ...row, credibility: calculateCredibility(row) };
 };
+export function toPublic<T extends { session_id?: string }>(row: T) {
+  const publicRow = { ...row };
+  delete publicRow.session_id;
+  return publicRow;
+}
 const router = Router();
+export const rumorListRouter = Router();
+function matchesAdminKey(value: string | undefined) {
+  if (!value) return false;
+  const expected = crypto.createHash('sha256').update(config.ADMIN_API_KEY).digest();
+  const received = crypto.createHash('sha256').update(value).digest();
+  return crypto.timingSafeEqual(expected, received);
+}
 router.post(
   '/',
   requireSession,
   validate(createSchema),
   asyncRoute(async (req, res) => {
-    const allowed = await query(
-      "SELECT 1 FROM sessions WHERE id=$1 AND (last_rumor_at IS NULL OR last_rumor_at <= now() - interval '1 hour')",
-      [req.session!.id],
-    );
-    if (!allowed.rowCount) {
-      const retry = await query<{ seconds: number }>(
-        "SELECT EXTRACT(EPOCH FROM (last_rumor_at + interval '1 hour' - now())) AS seconds FROM sessions WHERE id=$1",
+    const result = await withTransaction(async (client) => {
+      const allowed = await client.query<{ id: string }>(
+        "UPDATE sessions SET last_rumor_at=now() WHERE id=$1 AND (last_rumor_at IS NULL OR last_rumor_at <= now() - interval '1 hour') RETURNING id",
         [req.session!.id],
       );
-      throw new AppError(429, 'RUMOR_RATE_LIMITED', 'Only one rumor may be posted per hour', {
-        retryAfterSeconds: Math.ceil(Number(retry.rows[0].seconds)),
-      });
-    }
-    const result = await withTransaction(async (client) => {
+      if (!allowed.rowCount) {
+        const retry = await client.query<{ seconds: string }>(
+          "SELECT EXTRACT(EPOCH FROM (last_rumor_at + interval '1 hour' - now())) AS seconds FROM sessions WHERE id=$1",
+          [req.session!.id],
+        );
+        throw new AppError(429, 'RUMOR_RATE_LIMITED', 'Only one rumor may be posted per hour', {
+          retryAfterSeconds: Math.max(1, Math.ceil(Number(retry.rows[0]?.seconds ?? 3600))),
+        });
+      }
       const rumor = await client.query(
         `INSERT INTO rumors(session_id,text,category,base_score) VALUES($1,$2,$3,$4) RETURNING ${returnColumns}`,
         [req.session!.id, req.body.text, req.body.category, config.INITIAL_CREDIBILITY],
       );
-      await client.query('UPDATE sessions SET last_rumor_at=now() WHERE id=$1', [req.session!.id]);
       return rumor.rows[0];
     });
-    res.status(201).json(enrich(result));
-    broadcast('rumor:new', enrich(result), req.body.category);
+    const rumor = toPublic(enrich(result));
+    res.status(201).json(rumor);
+    broadcast('rumor:new', rumor, req.body.category);
   }),
 );
-router.get(
+router.patch(
+  '/:id/debunk',
+  validate(idSchema, 'params'),
+  asyncRoute(async (req, res) => {
+    if (!matchesAdminKey(req.get('x-admin-api-key')))
+      throw new AppError(401, 'UNAUTHORIZED', 'Invalid admin API key');
+    const result = await query(
+      `UPDATE rumors SET status='debunked' WHERE id=$1 AND status <> 'debunked' RETURNING ${returnColumns}`,
+      [String(req.params.id)],
+    );
+    if (!result.rowCount) {
+      const existing = await query<{ status: string }>('SELECT status FROM rumors WHERE id=$1', [
+        String(req.params.id),
+      ]);
+      if (!existing.rowCount) throw new AppError(404, 'NOT_FOUND', 'Rumor not found');
+      throw new AppError(409, 'ALREADY_DEBUNKED', 'Rumor is already debunked');
+    }
+    const rumor = toPublic(enrich(result.rows[0] as RumorRow));
+    broadcast('rumor:debunked', rumor, rumor.category);
+    res.json(rumor);
+  }),
+);
+rumorListRouter.get(
   '/',
   validate(listSchema, 'query'),
   asyncRoute(async (req, res) => {
@@ -98,14 +140,25 @@ router.get(
       values.push(q.status);
       filters.push(`r.status=$${values.length}`);
     }
+    const weightPlaceholder = `$${values.length + 1}`;
+    const lambdaPlaceholder = `$${values.length + 2}`;
+    if (q.sort === 'credibility') values.push(config.UPVOTE_WEIGHT, config.DECAY_LAMBDA);
     values.push(q.limit, (q.page - 1) * q.limit);
     const order =
-      q.sort === 'credibility' ? 'r.upvote_count DESC, r.created_at DESC' : 'r.created_at DESC';
+      q.sort === 'credibility'
+        ? `${credibilitySqlExpression('r', weightPlaceholder, lambdaPlaceholder)} DESC, r.created_at DESC, r.id DESC`
+        : 'r.created_at DESC, r.id DESC';
+    const limitPlaceholder = `$${values.length - 1}`;
+    const offsetPlaceholder = `$${values.length}`;
     const result = await query(
-      `SELECT ${selectColumns} FROM rumors r ${filters.length ? `WHERE ${filters.join(' AND ')}` : ''} ORDER BY ${order} LIMIT $${values.length - 1} OFFSET $${values.length}`,
+      `SELECT ${selectColumns} FROM rumors r ${filters.length ? `WHERE ${filters.join(' AND ')}` : ''} ORDER BY ${order} LIMIT ${limitPlaceholder} OFFSET ${offsetPlaceholder}`,
       values,
     );
-    res.json({ items: (result.rows as RumorRow[]).map(enrich), page: q.page, limit: q.limit });
+    res.json({
+      items: (result.rows as RumorRow[]).map((row) => toPublic(enrich(row))),
+      page: q.page,
+      limit: q.limit,
+    });
   }),
 );
 router.get(
@@ -116,7 +169,7 @@ router.get(
       `SELECT ${selectColumns} FROM rumors r WHERE category=$1 ORDER BY created_at DESC LIMIT 50`,
       [String(req.params.category)],
     );
-    res.json({ items: (result.rows as RumorRow[]).map(enrich) });
+    res.json({ items: (result.rows as RumorRow[]).map((row) => toPublic(enrich(row))) });
   }),
 );
 router.get(
@@ -127,7 +180,7 @@ router.get(
       String(req.params.id),
     ]);
     if (!result.rowCount) throw new AppError(404, 'NOT_FOUND', 'Rumor not found');
-    res.json(enrich(result.rows[0] as RumorRow));
+    res.json(toPublic(enrich(result.rows[0] as RumorRow)));
   }),
 );
 router.get(
@@ -199,7 +252,7 @@ async function vote(rumorId: string, sessionId: string, type: 'upvote' | 'flag')
     );
     return enrich(updated.rows[0]);
   });
-  const enriched = enrich(result as RumorRow);
+  const enriched = toPublic(enrich(result as RumorRow));
   broadcast(type === 'upvote' ? 'rumor:upvoted' : 'rumor:flagged', enriched, enriched.category);
   if (type === 'flag' && enriched.status === 'debunked')
     broadcast('rumor:debunked', enriched, enriched.category);
